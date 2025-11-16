@@ -21,7 +21,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # bsp
 if(NOT BSP_MSP_DIR)
-    # 判断 /soc/lib/libax_engine.so 是否存在，以确定是否为板端编译
+    # Check whether /soc/lib/libax_engine.so exists to determine if this is a board-side build
     if(EXISTS /soc/lib/libax_engine.so)
         message(STATUS "Detected board,BSP_MSP_DIR = /soc")
         set(BSP_MSP_DIR /soc)
