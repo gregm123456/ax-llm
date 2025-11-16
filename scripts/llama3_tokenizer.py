@@ -47,15 +47,15 @@ print(tokenizer.encode("hello world"))
 
 
 class Request(BaseHTTPRequestHandler):
-    #通过类继承，新定义类
+    # Define a new class by inheriting from BaseHTTPRequestHandler
     timeout = 5
     server_version = 'Apache'
 
     def do_GET(self):
         print(self.path)
-        #在新类中定义get的内容（当客户端向该服务端使用get请求时，本服务端将如下运行）
+        # Define the GET handler (this runs when a client sends a GET request)
         self.send_response(200)
-        self.send_header("type", "get")  #设置响应头，可省略或设置多个
+        self.send_header("type", "get")  # Set response header; optional
         self.end_headers()
 
         if self.path == '/bos_id':
@@ -76,25 +76,26 @@ class Request(BaseHTTPRequestHandler):
             msg = 'error'
 
         print(msg)
-        msg = str(msg).encode()  #转为str再转为byte格式
+        msg = str(msg).encode()  # Convert to string then to bytes
 
-        self.wfile.write(msg)  #将byte格式的信息返回给客户端
+        self.wfile.write(msg)  # Return byte-formatted message to client
 
     def do_POST(self):
-        #在新类中定义post的内容（当客户端向该服务端使用post请求时，本服务端将如下运行）
+        # Define the POST handler (this runs when a client sends a POST request)
         data = self.rfile.read(int(
-            self.headers['content-length']))  #获取从客户端传入的参数（byte格式）
-        data = data.decode()  #将byte格式转为str格式
+            self.headers['content-length']))  # Read request body (bytes)
+        data = data.decode()  # Decode bytes to string
 
         self.send_response(200)
-        self.send_header("type", "post")  #设置响应头，可省略或设置多个
+        self.send_header("type", "post")  # Set response header; optional
         self.end_headers()
 
         if self.path == '/encode':
             req = json.loads(data)
             prompt = req['text']
 
-            template = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n用中文回答问题<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
+            # System prompt: Answer questions in Chinese
+            template = f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\nAnswer the question in Chinese<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n{prompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"
             print(template)
 
             token_ids = tokenizer.encode(template)
@@ -114,9 +115,9 @@ class Request(BaseHTTPRequestHandler):
         else:
             msg = 'error'
         print(msg)
-        msg = str(msg).encode()  #转为str再转为byte格式
+        msg = str(msg).encode()  # Convert to string then to bytes
 
-        self.wfile.write(msg)  #将byte格式的信息返回给客户端
+        self.wfile.write(msg)  # Return byte-formatted message to client
 
 
 if __name__ == "__main__":
@@ -126,7 +127,7 @@ if __name__ == "__main__":
     args.add_argument('--port', type=int, default=8080)
     args = args.parse_args()
 
-    host = (args.host, args.port)  #设定地址与端口号，'localhost'等价于'127.0.0.1'
+    host = (args.host, args.port)  # Set host address and port; 'localhost' == '127.0.0.1'
     print('http://%s:%s' % host)
-    server = HTTPServer(host, Request)  #根据地址端口号和新定义的类，创建服务器实例
-    server.serve_forever()  #开启服务
+    server = HTTPServer(host, Request)  # Create server instance using host and defined handler
+    server.serve_forever()  # Start server

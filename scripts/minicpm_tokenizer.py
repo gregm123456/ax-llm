@@ -115,9 +115,9 @@ class Request(BaseHTTPRequestHandler):
         else:
             msg = 'error'
         print(msg)
-        msg = str(msg).encode() #转为str再转为byte格式
+        msg = str(msg).encode() # Convert to string then to bytes
 
-        self.wfile.write(msg) #将byte格式的信息返回给客户端
+        self.wfile.write(msg) # Return the byte-formatted message to the client
 
 if __name__ == "__main__":
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
     args.add_argument('--port', type=int, default=8080)
     args = args.parse_args()
 
-    host = (args.host, args.port) #设定地址与端口号，'localhost'等价于'127.0.0.1'
+    host = (args.host, args.port) # Set host address and port; 'localhost' == '127.0.0.1'
     print('http://%s:%s' % host)
-    server = HTTPServer(host, Request) #根据地址端口号和新定义的类，创建服务器实例
-    server.serve_forever() #开启服务
+    server = HTTPServer(host, Request) # Create server instance using host and defined handler
+    server.serve_forever() # Start server

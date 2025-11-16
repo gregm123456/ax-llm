@@ -14,12 +14,14 @@ class Tokenizer_Http():
                                                        use_fast=False)
 
     def encode(self, content):
-        prompt = f"<|im_start|>system\n你是由上海人工智能实验室联合商汤科技开发的书生多模态大模型，英文名叫InternVL, 是一个有用无害的人工智能助手。<|im_end|><|im_start|>user\n{content}<|im_end|><|im_start|>assistant\n"
+        # System prompt: Describe the model identity/role in English, keep semantics the same
+        prompt = f"<|im_start|>system\nYou are a multi-modal assistant model developed jointly by Shanghai AI Laboratory and SenseTime, named InternVL. You are a helpful, harmless AI assistant.<|im_end|><|im_start|>user\n{content}<|im_end|><|im_start|>assistant\n"
         input_ids = self.tokenizer.encode(prompt)
         return input_ids
 
     def encode_vpm(self, content="Please describe the image shortly."):
-        prompt = f"<|im_start|>system\n你是由上海人工智能实验室联合商汤科技开发的书生多模态大模型，英文名叫InternVL, 是一个有用无害的人工智能助手。<|im_end|><|im_start|>user\n<img>" + "<IMG_CONTEXT>" * 256 + f"</img>\n{content}<|im_end|><|im_start|>assistant\n"
+        # System prompt: Model description (English), then image prompt
+        prompt = f"<|im_start|>system\nYou are a multi-modal assistant model developed jointly by Shanghai AI Laboratory and SenseTime, named InternVL. You are a helpful, harmless AI assistant.<|im_end|><|im_start|>user\n<img>" + "<IMG_CONTEXT>" * 256 + f"</img>\n{content}<|im_end|><|im_start|>assistant\n"
         input_ids = self.tokenizer.encode(prompt)
         return input_ids
 
@@ -65,15 +67,15 @@ print(len(token_ids))
 
 
 class Request(BaseHTTPRequestHandler):
-    #通过类继承，新定义类
+    # Define a new request handler class by inheriting from BaseHTTPRequestHandler
     timeout = 5
     server_version = 'Apache'
 
     def do_GET(self):
         print(self.path)
-        #在新类中定义get的内容（当客户端向该服务端使用get请求时，本服务端将如下运行）
+        # Define the GET handler (runs when a client sends a GET request)
         self.send_response(200)
-        self.send_header("type", "get")  #设置响应头，可省略或设置多个
+        self.send_header("type", "get")  # Set response header; optional
         self.end_headers()
 
         if self.path == '/bos_id':
@@ -94,18 +96,18 @@ class Request(BaseHTTPRequestHandler):
             msg = 'error'
 
         print(msg)
-        msg = str(msg).encode()  #转为str再转为byte格式
+        msg = str(msg).encode()  # Convert to string then to bytes
 
-        self.wfile.write(msg)  #将byte格式的信息返回给客户端
+        self.wfile.write(msg)  # Return byte-formatted message to client
 
     def do_POST(self):
-        #在新类中定义post的内容（当客户端向该服务端使用post请求时，本服务端将如下运行）
+        # Define the POST handler (runs when a client sends a POST request)
         data = self.rfile.read(int(
-            self.headers['content-length']))  #获取从客户端传入的参数（byte格式）
-        data = data.decode()  #将byte格式转为str格式
+            self.headers['content-length']))  # Read request body (bytes)
+        data = data.decode()  # Decode bytes to string
 
         self.send_response(200)
-        self.send_header("type", "post")  #设置响应头，可省略或设置多个
+        self.send_header("type", "post")  # Set response header; optional
         self.end_headers()
 
         if self.path == '/encode':
@@ -135,9 +137,9 @@ class Request(BaseHTTPRequestHandler):
         else:
             msg = 'error'
         print(msg)
-        msg = str(msg).encode()  #转为str再转为byte格式
+        msg = str(msg).encode()  # Convert to string then to bytes
 
-        self.wfile.write(msg)  #将byte格式的信息返回给客户端
+        self.wfile.write(msg)  # Return byte-formatted message to client
 
 
 if __name__ == "__main__":
@@ -147,7 +149,7 @@ if __name__ == "__main__":
     args.add_argument('--port', type=int, default=8080)
     args = args.parse_args()
 
-    host = (args.host, args.port)  #设定地址与端口号，'localhost'等价于'127.0.0.1'
+    host = (args.host, args.port)  # Set host address and port; 'localhost' == '127.0.0.1'
     print('http://%s:%s' % host)
-    server = HTTPServer(host, Request)  #根据地址端口号和新定义的类，创建服务器实例
-    server.serve_forever()  #开启服务
+    server = HTTPServer(host, Request)  # Create server instance using host and defined handler
+    server.serve_forever()  # Start server
