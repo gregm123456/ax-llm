@@ -4,8 +4,7 @@
 
 #include "cmdline.hpp"
 
-#include <ax_sys_api.h>
-#include <ax_engine_api.h>
+#include <opencv2/opencv.hpp>
 
 static LLM lLaMa;
 
@@ -26,143 +25,98 @@ std::string prompt_complete(std::string prompt, TokenizerType tokenizer_type)
     std::ostringstream oss_prompt;
     switch (tokenizer_type)
     {
-    case TKT_HTTP:
-        oss_prompt << prompt;
+    case TKT_LLaMa:
+        oss_prompt << "<|user|>\n"
+                   << prompt << "</s><|assistant|>\n";
         break;
+    case TKT_MINICPM:
+        oss_prompt << "<用户><image></image>\n";
+        oss_prompt << prompt << "<AI>";
+        break;
+    case TKT_Phi3:
+        oss_prompt << prompt << " ";
+        break;
+    case TKT_Qwen:
+        oss_prompt << "<|im_start|>system\nYou are a helpful assistant.<|im_end|>";
+        oss_prompt << "\n<|im_start|>user\n"
+                   << prompt << "<|im_end|>\n<|im_start|>assistant\n";
+        break;
+    case TKT_HTTP:
     default:
-        ALOGE("tokenizer type %d not support", tokenizer_type);
+        oss_prompt << prompt;
         break;
     }
 
     return oss_prompt.str();
 }
-
-bool save_kvcache(std::string target_path, std::string system_prompt, int precompute_len, std::vector<std::vector<unsigned short>> &k_caches, std::vector<std::vector<unsigned short>> &v_caches)
-{
-    for (size_t i = 0; i < k_caches.size(); i++)
-    {
-        std::string k_cache_path = target_path + "/k_cache_" + std::to_string(i) + ".bin";
-        std::string v_cache_path = target_path + "/v_cache_" + std::to_string(i) + ".bin";
-        std::ofstream k_cache_file(k_cache_path);
-        std::ofstream v_cache_file(v_cache_path);
-        if (!k_cache_file.is_open() || !v_cache_file.is_open())
-        {
-            ALOGE("save kvcache failed");
-            return false;
-        }
-        k_cache_file.write((char *)k_caches[i].data(), k_caches[i].size() * sizeof(unsigned short));
-        v_cache_file.write((char *)v_caches[i].data(), v_caches[i].size() * sizeof(unsigned short));
-        k_cache_file.close();
-        v_cache_file.close();
-    }
-    nlohmann::json j;
-    j["system_prompt"] = system_prompt;
-    j["precompute_len"] = precompute_len;
-    std::string config_path = target_path + "/config.json";
-    std::ofstream config_file(config_path);
-    config_file << j.dump();
-    config_file.close();
-    return true;
-}
-
-bool load_kvcache(std::string target_path, int axmodel_num, std::vector<std::vector<unsigned short>> &k_caches, std::vector<std::vector<unsigned short>> &v_caches, std::string &system_prompt, int &precompute_len)
-{
-    k_caches.resize(axmodel_num);
-    v_caches.resize(axmodel_num);
-    for (size_t i = 0; i < k_caches.size(); i++)
-    {
-        std::string k_cache_path = target_path + "/k_cache_" + std::to_string(i) + ".bin";
-        std::string v_cache_path = target_path + "/v_cache_" + std::to_string(i) + ".bin";
-        if (file_exist(k_cache_path) && file_exist(v_cache_path))
-        {
-            std::vector<unsigned short> k_cache;
-            std::vector<unsigned short> v_cache;
-            std::ifstream k_cache_file(k_cache_path);
-            std::ifstream v_cache_file(v_cache_path);
-
-            k_cache_file.seekg(0, std::ios::end);
-            k_cache.resize(k_cache_file.tellg() / sizeof(unsigned short));
-            k_cache_file.seekg(0, std::ios::beg);
-
-            v_cache_file.seekg(0, std::ios::end);
-            v_cache.resize(v_cache_file.tellg() / sizeof(unsigned short));
-            v_cache_file.seekg(0, std::ios::beg);
-
-            k_cache_file.read((char *)k_cache.data(), k_cache.size() * sizeof(unsigned short));
-            v_cache_file.read((char *)v_cache.data(), v_cache.size() * sizeof(unsigned short));
-
-            k_cache_file.close();
-            v_cache_file.close();
-            k_caches[i] = k_cache;
-            v_caches[i] = v_cache;
-        }
-        else
-        {
-            ALOGE("k_cache %s or v_cache %s not exist", k_cache_path.c_str(), v_cache_path.c_str());
-            return false;
-        }
-    }
-
-    std::string config_path = target_path + "/config.json";
-    if (file_exist(config_path))
-    {
-        std::ifstream config_file(config_path);
-        nlohmann::json j;
-        config_file >> j;
-        system_prompt = j["system_prompt"].get<std::string>();
-        precompute_len = j["precompute_len"].get<int>();
-        config_file.close();
-    }
-    else
-    {
-        ALOGE("config %s not exist", config_path.c_str());
-        return false;
-    }
-    return true;
-}
-
 int main(int argc, char *argv[])
 {
     signal(SIGPIPE, SIG_IGN);
     signal(SIGINT, __sigExit);
     LLMAttrType attr;
     std::string prompt = "Hi";
-    bool b_continue = true;
-    std::string kvcache_path;
+    bool b_continue = false;
 
     cmdline::parser cmd;
-    cmd.add<std::string>("system_prompt", 0, "system prompt", false, attr.system_prompt);
-    cmd.add<std::string>("kvcache_path", 0, "kvcache path", false, kvcache_path);
+    cmd.add<std::string>("prompt", 'p', "prompt", true, prompt);
+    cmd.add<std::string>("image", 'i', "image", true);
     cmd.add<std::string>("template_filename_axmodel", 0, "axmodel path template", false, attr.template_filename_axmodel);
     cmd.add<std::string>("filename_post_axmodel", 0, "post axmodel path", false, attr.filename_post_axmodel);
-    cmd.add<std::string>("url_tokenizer_model", 0, "tokenizer model path", false, attr.url_tokenizer_model);
+    cmd.add<int>("tokenizer_type", 0, "tokenizer type 0:LLaMa 1:Qwen 2:HTTP 3:Phi3 4:MINICPM", false, attr.tokenizer_type);
+    cmd.add<std::string>("filename_tokenizer_model", 0, "tokenizer model path", false, attr.filename_tokenizer_model);
     cmd.add<std::string>("filename_tokens_embed", 0, "tokens embed path", false, attr.filename_tokens_embed);
 
+    cmd.add<std::string>("filename_vpm_encoder_axmodedl", 0, "vpm encoder axmodel path", false, attr.filename_vpm_encoder_axmodedl);
+    cmd.add<std::string>("filename_vpm_resampler_axmodedl", 0, "vpm resampler axmodel path", true, attr.filename_vpm_resampler_axmodedl);
+    cmd.add<bool>("vpm_two_stage", 0, "", false, attr.b_vpm_two_stage);
+
+    cmd.add<bool>("bos", 0, "", false, attr.b_bos);
+    cmd.add<bool>("eos", 0, "", false, attr.b_eos);
     cmd.add<int>("axmodel_num", 0, "num of axmodel(for template)", false, attr.axmodel_num);
     // cmd.add<int>("prefill_axmodel_num", 0, "num of axmodel(for template)", true, attr.prefill_axmodel_num);
     cmd.add<int>("tokens_embed_num", 0, "tokens embed num", false, attr.tokens_embed_num);
     cmd.add<int>("tokens_embed_size", 0, "tokens embed size", false, attr.tokens_embed_size);
 
+    cmd.add<bool>("use_topk", 0, "", false, attr.b_use_topk);
     cmd.add<bool>("use_mmap_load_embed", 0, "it can save os memory", false, attr.b_use_mmap_load_embed);
+    cmd.add<bool>("dynamic_load_axmodel_layer", 0, "it can save cmm memory", false, attr.b_dynamic_load_axmodel_layer);
 
     cmd.add<bool>("live_print", 0, "print in live if set true, else print in end", false);
 
+    cmd.add<bool>("continue", 0, "continuous dialogue", false, b_continue);
+    cmd.add<int>("img_width", 'w', "image width", true);
+    cmd.add<int>("img_height", 'h', "image height", true);
+    cmd.add<unsigned int>("img_token_id", 0, "image token id", false, 151667);  // Default value for InternVL2.5
+    cmd.add<std::string>("post_config_path", 0, "post config path", false, attr.post_config_path);
+
     cmd.parse_check(argc, argv);
 
-    attr.system_prompt = cmd.get<std::string>("system_prompt");
-    kvcache_path = cmd.get<std::string>("kvcache_path");
-    attr.url_tokenizer_model = cmd.get<std::string>("url_tokenizer_model");
+    prompt = cmd.get<std::string>("prompt");
+    auto image_prompt = cmd.get<std::string>("image");
+    attr.tokenizer_type = (TokenizerType)cmd.get<int>("tokenizer_type");
+    attr.filename_tokenizer_model = cmd.get<std::string>("filename_tokenizer_model");
     attr.filename_tokens_embed = cmd.get<std::string>("filename_tokens_embed");
     attr.filename_post_axmodel = cmd.get<std::string>("filename_post_axmodel");
     attr.template_filename_axmodel = cmd.get<std::string>("template_filename_axmodel");
     // attr.template_prefill_filename_axmodel = cmd.get<std::string>("template_prefill_filename_axmodel");
     // attr.prefill_axmodel_num = cmd.get<int>("prefill_axmodel_num");
 
+    attr.filename_vpm_encoder_axmodedl = cmd.get<std::string>("filename_vpm_encoder_axmodedl");
+    attr.filename_vpm_resampler_axmodedl = cmd.get<std::string>("filename_vpm_resampler_axmodedl");
+    attr.b_vpm_two_stage = cmd.get<bool>("vpm_two_stage");
+    attr.b_bos = cmd.get<bool>("bos");
+    attr.b_eos = cmd.get<bool>("eos");
+    attr.b_use_topk = cmd.get<bool>("use_topk");
     attr.axmodel_num = cmd.get<int>("axmodel_num");
     attr.tokens_embed_num = cmd.get<int>("tokens_embed_num");
     attr.tokens_embed_size = cmd.get<int>("tokens_embed_size");
 
     attr.b_use_mmap_load_embed = cmd.get<bool>("use_mmap_load_embed");
+    attr.b_dynamic_load_axmodel_layer = cmd.get<bool>("dynamic_load_axmodel_layer");
+    attr.vpm_width = cmd.get<int>("img_width");
+    attr.vpm_height = cmd.get<int>("img_height");
+    unsigned int img_token_id = cmd.get<unsigned int>("img_token_id");
+    attr.post_config_path = cmd.get<std::string>("post_config_path");
 
     bool b_live_print = cmd.get<bool>("live_print");
     if (b_live_print)
@@ -171,23 +125,39 @@ int main(int argc, char *argv[])
         attr.reserve = 0;
     }
 
-    // 1. init engine
-    AX_ENGINE_NPU_ATTR_T npu_attr;
-    memset(&npu_attr, 0, sizeof(npu_attr));
-    npu_attr.eHardMode = AX_ENGINE_VIRTUAL_NPU_DISABLE;
-    AX_SYS_Init();
-    auto ret = AX_ENGINE_Init(&npu_attr);
-    if (0 != ret)
-    {
-        return ret;
-    }
+    b_continue = cmd.get<bool>("continue");
 
     if (!lLaMa.Init(attr))
     {
-        ALOGE("lLaMa.Init failed");
-        AX_ENGINE_Deinit();
-        AX_SYS_Deinit();
         return -1;
+    }
+
+    std::vector<unsigned short> prompt_data;
+    std::vector<unsigned short> img_embed;
+    //     std::vector<unsigned short> _tmp_data;
+    //     lLaMa.RunVpm(src, _tmp_data);
+    //     // printf("%d \n", _tmp_data.size());
+    //     memcpy(prompt_data.data() + 5 * attr.tokens_embed_size, _tmp_data.data(), _tmp_data.size() * sizeof(unsigned short));
+    // }
+
+    if (prompt != "")
+    {
+        std::string output;
+        cv::Mat src = cv::imread(image_prompt, cv::IMREAD_COLOR);
+        if (src.empty())
+        {
+            // output = lLaMa.Run(prompt);
+            ALOGE("image_prompt can't be empty");
+        }
+        else
+        {
+            lLaMa.Encode(src, img_embed);
+            lLaMa.Encode(img_embed, prompt_data, prompt_complete(prompt, attr.tokenizer_type), img_token_id);
+            output = lLaMa.Run(prompt_data);
+        }
+
+        if (!b_live_print && !output.empty())
+            printf("%s\n", output.c_str());
     }
 
     //
@@ -196,37 +166,6 @@ int main(int argc, char *argv[])
         printf("Type \"q\" to exit, Ctrl+c to stop current running\n");
         // lLaMa.Reset();
     }
-    std::vector<unsigned short> prompt_data;
-    std::string last_reply;
-    std::vector<std::vector<unsigned short>> k_caches, v_caches;
-    int precompute_len = 0;
-
-    std::vector<int> _token_ids;
-    lLaMa.SetSystemPrompt(attr.system_prompt, _token_ids);
-
-    if (!kvcache_path.empty() && kvcache_path != "")
-    {
-        if (load_kvcache(kvcache_path, attr.axmodel_num, k_caches, v_caches, attr.system_prompt, precompute_len))
-        {
-            ALOGI("load kvcache from path: %s success,precompute_len: %d", kvcache_path.c_str(), precompute_len);
-        }
-        else
-        {
-            ALOGW("load kvcache from path: %s failed,generate kvcache", kvcache_path.c_str());
-            lLaMa.GenerateKVCachePrefill(_token_ids, k_caches, v_caches, precompute_len);
-            if (!save_kvcache(kvcache_path, attr.system_prompt, precompute_len, k_caches, v_caches))
-            {
-                ALOGE("save kvcache failed");
-            }
-            ALOGI("generate kvcache to path: %s", kvcache_path.c_str());
-        }
-    }
-    else
-    {
-        lLaMa.GenerateKVCachePrefill(_token_ids, k_caches, v_caches, precompute_len);
-    }
-    ALOGI("precompute_len: %d", precompute_len);
-    ALOGI("system_prompt: %s", attr.system_prompt.c_str());
 
     while (b_continue)
     {
@@ -241,30 +180,40 @@ int main(int argc, char *argv[])
         {
             continue;
         }
-        if (prompt == "reset")
+
+        printf("image >> ");
+        fflush(stdout);
+        std::getline(std::cin, image_prompt);
+        std::string output;
+        if (image_prompt == "")
         {
-            ALOGI("reset kvcache");
-            lLaMa.SetSystemPrompt(attr.system_prompt, _token_ids);
-            lLaMa.GenerateKVCachePrefill(_token_ids, k_caches, v_caches, precompute_len);
-            continue;
+            lLaMa.Encode(prompt_data, prompt_complete(prompt, attr.tokenizer_type));
+            output = lLaMa.Run(prompt_data);
         }
-        std::vector<int> tokens_ids, tokens_diff;
-        lLaMa.Encode(prompt_data, prompt_complete(prompt, attr.tokenizer_type), last_reply, tokens_ids, tokens_diff);
-        if (auto ret = lLaMa.SetKVCache(k_caches, v_caches, precompute_len, tokens_diff.size()); ret != 0)
+        else
         {
-            ALOGE("SetKVCache failed: %d,the context may be full,input \"reset\" to reset context", ret);
-            continue;
+            cv::Mat src = cv::imread(image_prompt, cv::IMREAD_COLOR);
+            if (src.empty())
+            {
+                // output = lLaMa.Run(prompt);
+                ALOGE("image prompt(%s) not found", image_prompt.c_str());
+                // continue;
+                lLaMa.Encode(prompt_data, prompt_complete(prompt, attr.tokenizer_type));
+                output = lLaMa.Run(prompt_data);
+            }
+            else
+            {
+                lLaMa.Encode(src, img_embed);
+                lLaMa.Encode(img_embed, prompt_data, prompt_complete(prompt, attr.tokenizer_type));
+                output = lLaMa.Run(prompt_data);
+            }
         }
-        last_reply = lLaMa.Run(prompt_data);
-        lLaMa.GetKVCache(k_caches, v_caches, precompute_len);
 
         if (!b_live_print)
-            printf("%s\n", last_reply.c_str());
+            printf("%s\n", output.c_str());
     }
 
     lLaMa.Deinit();
-    
-    AX_ENGINE_Deinit();
-    AX_SYS_Deinit();
+
     return 0;
 }

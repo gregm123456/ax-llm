@@ -1,5 +1,4 @@
 #pragma once
-#include <fstream>
 #include <iostream>
 #include <vector>
 #include <random>
@@ -13,7 +12,7 @@
 class LLMPostprocess
 {
 private:
-    // Control randomness
+    // Control randomness (temperature)
     void apply_temperature(std::vector<float> &logits, float temperature)
     {
         for (float &logit : logits)
@@ -28,6 +27,8 @@ private:
         for (int token : history)
         {
             if (token < logits.size())
+            {
+                logits[token] = logits[token] < 0 ? logits[token] * penalty : logits[token] / penalty;
             }
         }
     }
@@ -37,9 +38,9 @@ private:
                                   float repetition_penalty,
                                   int penalty_window)
     {
+        if (repetition_penalty == 1.0f || generated_tokens.empty())
         {
-            // If penalty = 1.0 or no token was generated, do not modify
-            return;
+            return; // If penalty == 1.0 or there are no generated tokens, do nothing
         }
 
         int start_idx = std::max(0, (int)generated_tokens.size() - penalty_window);
@@ -61,7 +62,7 @@ private:
         }
     }
 
-    // Enhance diversity
+    // Enhance diversity (diversity penalty)
     void apply_diversity_penalty(std::vector<float> &logits, const std::vector<int> &common_phrases, float penalty)
     {
         for (int token : common_phrases)
@@ -79,6 +80,7 @@ private:
         std::vector<float> probs(logits.size());
         float max_logit = *std::max_element(logits.begin(), logits.end());
         float sum = 0.0f;
+
         for (size_t i = 0; i < logits.size(); ++i)
         {
             probs[i] = std::exp(logits[i] - max_logit);
@@ -93,13 +95,13 @@ private:
         return probs;
     }
 
-    // Dynamically prune low-probability tokens
+    // Dynamic clipping of low-probability tokens (top-p)
     int faster_top_p_sampling(const std::vector<float> &logits, float top_p)
     {
         // Compute softmax
         std::vector<float> probs = softmax(logits);
 
-        // Build max-heap (pair probability and index)
+        // Build a max-heap (probability, index pairs)
         std::vector<std::pair<float, size_t>> prob_index;
         prob_index.reserve(logits.size());
         for (size_t i = 0; i < logits.size(); ++i)
@@ -108,6 +110,7 @@ private:
         }
         auto cmp = [](const auto &a, const auto &b)
         { return a.first < b.first; };
+        std::make_heap(prob_index.begin(), prob_index.end(), cmp);
 
         // Extract top-p elements
         std::vector<size_t> filtered_indices;
@@ -128,11 +131,11 @@ private:
                 break;
         }
 
-        // Handle edge case (return the first element when all probabilities are zero)
+        // Handle edge case: if probabilities are all zero, return the first element
         if (filtered_indices.empty())
             return 0;
 
-        // Use thread_local RNG (thread-safe)
+        // Use thread_local random generator (thread-safe)
         static thread_local std::mt19937 gen(std::random_device{}());
         std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
         return filtered_indices[dist(gen)];
@@ -179,7 +182,7 @@ private:
         return filtered_indices[dist(gen)];
     }
 
-    // Limit the number of candidate tokens
+    // Limit the number of candidate tokens (top-k)
     int top_k_sampling(const std::vector<float> &logits, int k)
     {
         // std::vector<float> probs = softmax(logits);
@@ -190,7 +193,7 @@ private:
         std::partial_sort(indices.begin(), indices.begin() + k, indices.end(), [&](size_t i, size_t j)
                           { return logits[i] > logits[j]; });
 
-            // Keep only top-k probabilities
+        // Keep only top-k probabilities
         std::vector<size_t> filtered_indices(indices.begin(), indices.begin() + k);
         std::vector<float> filtered_probs(k);
         for (size_t i = 0; i < k; ++i)
@@ -198,15 +201,15 @@ private:
             filtered_probs[i] = logits[filtered_indices[i]];
         }
         filtered_probs = softmax(filtered_probs);
-            // Limit the number of candidate tokens
-        // Normalize
+
+        // 归一化
         float sum = std::accumulate(filtered_probs.begin(), filtered_probs.end(), 0.0f);
         for (float &p : filtered_probs)
         {
             p /= sum;
         }
 
-        // Sampling
+        // 采样
         std::random_device rd;
         std::mt19937 gen(rd());
         std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
@@ -307,8 +310,7 @@ public:
             return top_k_sampling(logits, top_k);
         else
         {
-            // Maximum
-                // Maximum
+            // 最大值
             float max_logit = *std::max_element(logits.begin(), logits.end());
             int max_index = std::distance(logits.begin(), std::max_element(logits.begin(), logits.end()));
             return max_index;

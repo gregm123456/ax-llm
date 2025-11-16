@@ -4,205 +4,110 @@
 
 | Platform | Build Status |
 | -------- | ------------ |
-| AX650    | ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/AXERA-TECH/ax-llm/build_650.yml)|
+| AX650    | ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/AXERA-TECH/ax-llm/build_650.yml?internvl2)|
 
 ## Overview
 
-**AX-LLM** is led by **[Axera Technology](https://www.axera-tech.com/)**. This project explores the feasibility and capability boundaries of commonly used LLMs (Large Language Models) on current chip platforms, and helps community developers evaluate and adapt LLM applications quickly.
-
-### Branch overview
-
- - [ax-context(default)](https://github.com/AXERA-TECH/ax-llm/tree/ax-context)
-   - Designed for running LLMs on AX650A/AX650N/AX8850/AX630C host boards
- - [ax-internvl](https://github.com/AXERA-TECH/ax-llm/tree/ax-internvl)
-   - Designed for running the InternVL series on AX650A/AX650N/AX8850/AX630C host boards
- - [axcl-context](https://github.com/AXERA-TECH/ax-llm/tree/axcl-context)
-   - The host controller on AX650N/AX8850 EP is used to run LLMs
- - [axcl-internvl](https://github.com/AXERA-TECH/ax-llm/tree/axcl-internvl)
-   - The host controller on AX650N/AX8850 EP is used to run the InternVL series
+**AX-LLM** is developed by **[Axera](https://www.axera-tech.com/)**. This project explores the feasibility and performance of large language models on Axera hardware and provides a basis for rapid evaluation and further development of LLM applications by the community.
 
 ### Supported chips
 
 - AX650A/AX650N
-  - SDK ≥ v3.6.2
-- AX630C
-  - SDK ≥ v3.0.0
+  - SDK ≥ v1.45.0_P31
 
 ### Supported models
 
-- Qwen2.5
-- Qwen3
-- MiniCPM
-- SmolLM2
-- Llama3
+- InternVL2-1B
+- SmolVLM-256M-Instruct
 
-### Model sources
+### Download links
 
- Our ModelZoo has migrated to [Huggingface](https://huggingface.co/AXERA-TECH), for example:
-
-- [Qwen2.5-7B-Instruct](https://huggingface.co/AXERA-TECH/Qwen2.5-7B-Instruct)
-- [Qwen2.5-1.5B-Instruct](https://huggingface.co/AXERA-TECH/Qwen2.5-1.5B-Instruct)
+- InternVL2-1B: Baidu Netdisk [download link](https://pan.baidu.com/s/1_LG-sPKnLS_LTWF3Cmcr7A?pwd=ph0e)
+- SmolVLM-256M-Instruct: [Download](https://github.com/techshoww/ax-llm/releases/download/v1.0.0/SmolVLM-256M-Instruct-AX650.tar.gz). We recommend using the AXERA Huggingface distribution at [AXERA Huggingface](https://huggingface.co/AXERA-TECH/SmolVLM-256M-Instruct) which uses smaller prefill_len and runs faster.
 
 ## Building from source
 
-1. Clone this repository
+-- Clone this repository
     ```shell
-    git clone --recursive https://github.com/AXERA-TECH/ax-llm.git
+    git clone  https://github.com/AXERA-TECH/ax-llm.git
     cd ax-llm
     ```
-2. Read `build.sh`, set the `BSP_MSP_DIR` variable correctly, and run the build script
+-- Clone the `ax650n_bsp_sdk` repository
+    ```shell
+    git clone https://github.com/AXERA-TECH/ax650n_bsp_sdk
+    ```
+-- Carefully review `build.sh` and update the `BSP_MSP_DIR` variable (points to `ax650n_bsp_sdk`) before running `./build.sh`.
     ```shell
     ./build.sh
     ```
- - After a successful build, the `build/install/` directory will contain:
+- After a successful build, the `build/install/bin` directory should contain the following files (prebuilt executables are available on Baidu Netdisk)
   ```
-  $ tree install
-    install
-    └── bin
-        ├── gradio_demo.py
-        ├── main
-        ├── main_api
-        └── qwen2.5_tokenizer_uid.py
+  $ tree install/bin/
+    install/bin/
+    ├── main
+    ├── run_bf16.sh
+    └── run_qwen_1.8B.sh
   ```
-
-  The `main` binary corresponds to `main_ax650` in the Huggingface repository.
   
-## Run examples
+## Example: Running the model
 
-### Qwen2.5-1.5B-Instruct
+### SmolVLM-256M-Instruct
 
-#### Start the tokenizer server (context-enabled)
+![demo.jpg](assets/demo.jpg)
 
-```shell
-python qwen2.5_tokenizer_uid.py 
-Server running at http://127.0.0.1:12345
+#### 1) Start the HTTP Tokenizer server
+```
+cd scripts
+python smolvlm_tokenizer_512.py  --host {your host} --port {your port}   # consistent with run_smolvlm.sh
 ```
 
-#### Run the command-line LLM client
+#### 2) Run the model on the board
+1) First update the HTTP host setting in `run_smolvlm.sh`.
+2) Copy `scripts/run_smolvlm.sh`, `src/post_config.json`, `build/install/bin/main`, and `assets/demo.jpg` to your Axera board
+3) Run `run_smolvlm.sh`  
 ```shell
-./run_qwen2.5_1.5b_ctx_ax650.sh 
-[I][                            Init][ 110]: LLM init start
-[I][                            Init][  34]: connect http://127.0.0.1:12345 ok
-[I][                            Init][  57]: uid: 4bba0928-fada-4329-903e-3b6e52d68791
-bos_id: -1, eos_id: 151645
-100% | ████████████████████████████████ |  31 /  31 [18.94s<18.94s, 1.64 count/s] init post axmodel ok,remain_cmm(1464 MB)
-[I][                            Init][ 188]: max_token_len : 2559
-[I][                            Init][ 193]: kv_cache_size : 256, kv_cache_num: 2559
-[I][                            Init][ 201]: prefill_token_num : 128
-[I][                            Init][ 205]: grp: 1, prefill_max_token_num : 1
-[I][                            Init][ 205]: grp: 2, prefill_max_token_num : 512
-[I][                            Init][ 205]: grp: 3, prefill_max_token_num : 1024
-[I][                            Init][ 205]: grp: 4, prefill_max_token_num : 1536
-[I][                            Init][ 205]: grp: 5, prefill_max_token_num : 2048
-[I][                            Init][ 209]: prefill_max_token_num : 2048
-[I][                     load_config][ 282]: load config: 
-{
-    "enable_repetition_penalty": false,
-    "enable_temperature": true,
-    "enable_top_k_sampling": true,
-    "enable_top_p_sampling": false,
-    "penalty_window": 20,
-    "repetition_penalty": 1.2,
-    "temperature": 0.9,
-    "top_k": 10,
-    "top_p": 0.8
-}
-
-[I][                            Init][ 218]: LLM init ok
+root@ax650 ~/SmolVLM-256M-Instruct-Infer # bash run_smolvlm.sh 
+[I][                            Init][ 106]: LLM init start
+bos_id: 1, eos_id: 49279
+  2% | █                                 |   1 /  34 [0.01s<0.27s, 125.00 count/s] tokenizer init ok[I][                            Init][  26]: LLaMaEmbedSelector use mmap
+100% | ████████████████████████████████ |  34 /  34 [1.59s<1.59s, 21.40 count/s] init vpm axmodel ok,remain_cmm(3498 MB)B)
+[I][                            Init][ 254]: max_token_len : 1023
+[I][                            Init][ 259]: kv_cache_size : 192, kv_cache_num: 1023
+[I][                            Init][ 267]: prefill_token_num : 128
+[I][                            Init][ 269]: vpm_height : 512,vpm_width : 512
+[I][                            Init][ 278]: LLM init ok
 Type "q" to exit, Ctrl+c to stop current running
-[I][          GenerateKVCachePrefill][ 271]: input token num : 21, prefill_split_num : 1 prefill_grpid : 2
-[I][          GenerateKVCachePrefill][ 308]: input_num_token:21
-[I][                            main][ 230]: precompute_len: 21
-[I][                            main][ 231]: system_prompt: You are Qwen, created by Alibaba Cloud. You are a helpful assistant.
-prompt >> hello,my name is allen,who are you
-[I][                      SetKVCache][ 531]: prefill_grpid:2 kv_cache_num:512 precompute_len:21 input_num_token:18
-[I][                      SetKVCache][ 534]: current prefill_max_token_num:1920
-[I][                             Run][ 660]: input token num : 18, prefill_split_num : 1
-[I][                             Run][ 686]: input_num_token:18
-[I][                             Run][ 829]: ttft: 539.49 ms
-Hello Allen! I'm sorry, but I'm an AI language model and I don't have a name. I'm just here to help you with any questions or information you need. How can I assist you today?
+prompt >> Can you describe this image?
+image >> assets/demo.jpg
+[I][                          Encode][ 337]: image encode time : 119.578003 ms, size : 36864
+[I][                             Run][ 548]: ttft: 57.75 ms
+ The image depicts a large, historic statue of Liberty, located in New York City. The statue is a prominent landmark and is known for its iconic presence in the city. The statue is located on a pedestal that is surrounded by a large, circular base. The base of the statue is made of stone and is painted in a light blue color. The statue is surrounded by a large, circular ring that encircles the base.
 
-[N][                             Run][ 943]: hit eos,avg 10.80 token/s
+The statue is made of bronze and is quite large, measuring approximately 100 feet in height. The statue is mounted on a pedestal that is made of stone and is painted in a light blue color. The pedestal is rectangular and is supported by a series of columns. The columns are made of stone and are painted in a light blue color. The statue is surrounded by a large, circular ring that encircles the base.
 
-[I][                      GetKVCache][ 500]: precompute_len:83, remaining:1965
-prompt >> What is my name
-[I][                      SetKVCache][ 531]: prefill_grpid:2 kv_cache_num:512 precompute_len:83 input_num_token:12
-[I][                      SetKVCache][ 534]: current prefill_max_token_num:1920
-[I][                             Run][ 660]: input token num : 12, prefill_split_num : 1
-[I][                             Run][ 686]: input_num_token:12
-[I][                             Run][ 829]: ttft: 538.67 ms
-Your name is Allen.
+In the background, there is a large cityscape with a variety of buildings and structures. The sky is clear and blue, indicating that it is a sunny day. The buildings are tall and have a modern architectural style, with large windows and balconies. The buildings are mostly made of glass and steel, and they are painted in a variety of colors.
 
-[N][                             Run][ 943]: hit eos,avg 10.57 token/s
+There are a few trees and bushes visible in the foreground, which are located on the left side of the image. The trees are green and appear to be healthy. There is also a small, white building visible in the background, which is likely a hotel or a small office.
 
-[I][                      GetKVCache][ 500]: precompute_len:100, remaining:1948
+The overall atmosphere of the image is one of peace and tranquility. The statue is a symbol of freedom and liberty, and the surrounding buildings and structures add to the sense of the city's historical and cultural significance.
 
+In summary, the image depicts the Statue of Liberty, a large, historic statue located in New York City. The statue is a prominent landmark and is surrounded by a large, circular ring that encircles the base. The statue is painted in a light blue color and is mounted on a pedestal that is surrounded by a large, circular ring. The statue is surrounded by a large, circular ring that encircles the base. The background includes a large cityscape with tall buildings and a clear blue sky. The overall atmosphere of the image is one of peace and tranquility.
+
+[N][                             Run][ 687]: hit eos,avg 76.88 token/s
 ```
 
-#### Run the API and Gradio demo
-##### Start the server
-```shell
-./run_qwen2.5_1.5b_ctx_ax650_api.sh 
-[I][                            Init][ 110]: LLM init start
-[I][                            Init][  34]: connect http://10.126.33.124:12345 ok
-[I][                            Init][  57]: uid: 13c64c2a-9b4e-4875-91f4-fa9f426e3726
-bos_id: -1, eos_id: 151645
-  3% | ██                                |   1 /  31 [0.15s<4.77s, 6.49 count/s] tokenizer init ok[I][                            Init][  26]: LLaMaEmbedSelector use mmap
-100% | ████████████████████████████████ |  31 /  31 [2.97s<2.97s, 10.44 count/s] init post axmodel ok,remain_cmm(1464 MB)[I][                            Init][ 188]: max_token_len : 2559
-[I][                            Init][ 193]: kv_cache_size : 256, kv_cache_num: 2559
-[I][                            Init][ 201]: prefill_token_num : 128
-[I][                            Init][ 205]: grp: 1, prefill_max_token_num : 1
-[I][                            Init][ 205]: grp: 2, prefill_max_token_num : 512
-[I][                            Init][ 205]: grp: 3, prefill_max_token_num : 1024
-[I][                            Init][ 205]: grp: 4, prefill_max_token_num : 1536
-[I][                            Init][ 205]: grp: 5, prefill_max_token_num : 2048
-[I][                            Init][ 209]: prefill_max_token_num : 2048
-[I][                     load_config][ 282]: load config: 
-{
-    "enable_repetition_penalty": false,
-    "enable_temperature": true,
-    "enable_top_k_sampling": true,
-    "enable_top_p_sampling": false,
-    "penalty_window": 20,
-    "repetition_penalty": 1.2,
-    "temperature": 0.9,
-    "top_k": 10,
-    "top_p": 0.8
-}
-
-[I][                            Init][ 218]: LLM init ok
-Server running on port 8000...
-```
-Find the board's IP address and update the host/port in the Gradio code
-```
-import time
-import gradio as gr
-import requests
-import json
-
-# Base URL of your API server; adjust host and port as needed
-API_URL = "http://x.x.x.x:8000"
-...
-
-```
- Run gradio_demo.py
-```
-python gradio_demo.py 
-/home/axera/ax-llm/scripts/gradio_demo.py:102: UserWarning: You have not specified a value for the `type` parameter. Defaulting to the 'tuples' format for chatbot messages, but this is deprecated and will be removed in a future version of Gradio. Please set type='messages' instead, which uses openai-style dictionaries with 'role' and 'content' keys.
-  chatbot = gr.Chatbot(elem_id="chatbox", label="Axera Chat",height=500)
-* Running on local URL:  http://0.0.0.0:7860
-
-To create a public link, set `share=True` in `launch()`.
-```
-
-![](scripts/gradio_demo.png)
+## Inference speed
+| Stage | Time |
+|------|------|
+| Image Encoder (512x512) | 120 ms  | 
+| Prefill |  57ms    |
+| Decode  |  77 token/s |
 
 ## Reference
 
-- [Qwen](https://huggingface.co/Qwen)
-
+- [InternVL2-1B](https://huggingface.co/OpenGVLab/InternVL2-1B)
+- [SmolVLM-256M-Instruct](https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct)
 ## Discussion / Support
 
 - GitHub issues
-- QQ Group: 139953715
-
+- QQ 群: 139953715
