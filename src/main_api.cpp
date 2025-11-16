@@ -143,17 +143,17 @@ private:
         condition.notify_one();
     }
 
-    // 模板接口：添加任务并返回 std::future 用于获取返回值
+    // Template interface: add a task and return a std::future to obtain the result
     template <typename F, typename... Args>
     auto addTaskWithResult(F &&f, Args &&...args)
         -> std::future<typename std::result_of<F(Args...)>::type>
     {
         using result_type = typename std::result_of<F(Args...)>::type;
-        // 将函数及其参数绑定成一个无参函数
+        // Bind the function and its arguments into a parameterless function
         auto task = std::make_shared<std::packaged_task<result_type()>>(
             std::bind(std::forward<F>(f), std::forward<Args>(args)...));
         std::future<result_type> res = task->get_future();
-        // 将任务封装为 lambda，确保在工作线程中执行
+        // Wrap the task in a lambda to ensure it's executed on the worker thread
         addTask([task]()
                 { (*task)(); });
         return res;
@@ -186,7 +186,7 @@ public:
         }
     }
 
-    // **支持带参数的任务**
+    // **Support parameterized tasks**
     void RunAsync(std::string prompt)
     {
 
@@ -336,15 +336,15 @@ void content_provider(const httplib::Request &req, httplib::Response &res)
 
     while (!g_msg_queue.empty())
     {
-        auto str = g_msg_queue.front(); // 用 front 取出
+        auto str = g_msg_queue.front(); // Use front() to retrieve
         g_msg_queue.pop();
 
         bot_response += str;
     }
 
-    // 最后发送 done=true
+    // Finally send done=true
     nlohmann::json chunk;
-    chunk["response"] = bot_response; // 最后不再补发内容，避免重复
+    chunk["response"] = bot_response; // Do not resend the content to avoid duplication
     if (worker.gllm_runing)
         chunk["done"] = false;
     else
@@ -555,9 +555,9 @@ int main(int argc, char *argv[])
                                         res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
                                         res.set_header("Access-Control-Allow-Headers", "Content-Type");
                                         res.status = 200;
-                                        return httplib::Server::HandlerResponse::Handled; // 表示已处理，不再继续
+                                        return httplib::Server::HandlerResponse::Handled; // Indicate request is handled; do not continue processing
                                     }
-                                    return httplib::Server::HandlerResponse::Unhandled; // 继续处理请求
+                                    return httplib::Server::HandlerResponse::Unhandled; // Continue handling request
                                 });
 
     std::cout << "Server running on port " << PORT << "..." << std::endl;

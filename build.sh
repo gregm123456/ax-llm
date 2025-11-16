@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# BSP_MSP_DIR 这个变量使用*绝对路径*指定到 SDK 的msp/out目录，如下所示（根据自己的目录修改）
-# 绝对路径 绝对路径 绝对路径 
+# The BSP_MSP_DIR variable should use an *absolute path* to the SDK's msp/out directory (adjust according to your environment)
+# Example: /absolute/path/to/sdk/msp/out
 
-# build_dir 修改为自己想要的编译目录名称
+# Change build_dir to the desired build directory name
 build_dir=build
 echo "build dir: ${build_dir}"
 mkdir ${build_dir}
@@ -20,7 +20,7 @@ fi
 
 BSP_MSP_DIR=$PWD/msp_3.6.2/out/
 echo "bsp dir: ${BSP_MSP_DIR}"
-# 下面会简单判断 BSP 路径是否正确
+# The script will perform a simple check to ensure the BSP path is correct
 if [ ! -d "${BSP_MSP_DIR}" ]; then
     echo "Error: ${BSP_MSP_DIR} is not a directory"
     exit 1
@@ -31,7 +31,7 @@ if [ ! -f "${BSP_MSP_DIR}/lib/libax_sys.so" ]; then
     exit 1
 fi
 
-# 下载失败可以使用其他方式下载并放到在 $build_dir 目录，参考如下命令解压
+# If download fails, you can download the file manually and place it into $build_dir, then extract as shown below
 URL="https://developer.arm.com/-/media/Files/downloads/gnu-a/9.2-2019.12/binrel/gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu.tar.xz"
 FOLDER="gcc-arm-9.2-2019.12-x86_64-aarch64-none-linux-gnu"
 
@@ -59,7 +59,7 @@ if [ $? -ne 0 ]; then
     fi
 fi
 
-# 开始编译
+# Start build
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=./install -DBSP_MSP_DIR=${BSP_MSP_DIR} -DCMAKE_TOOLCHAIN_FILE=../toolchains/aarch64-none-linux-gnu.toolchain.cmake ..
 make -j16
 make install

@@ -4,7 +4,7 @@ import json
 import argparse
 import uuid
 
-# 全局字典：存储 uid 到 Tokenizer_Http 实例的映射
+# Global dict: map uid to Tokenizer_Http instances
 tokenizers = {}
 
 class Tokenizer_Http():
@@ -26,7 +26,7 @@ class Tokenizer_Http():
                 tokenize=False,
                 add_generation_prompt=True
             )
-            # print("生成的文本:\n============\n", text, "============\n")
+            # print("Generated text:\n============\n", text, "============\n")
             self.token_ids = self.tokenizer.encode(text)[:-3]
         self.messages.append({"role": "user", "content": prompt})
         
@@ -35,9 +35,9 @@ class Tokenizer_Http():
             tokenize=False,
             add_generation_prompt=True
         )
-        print("生成的文本:\n============\n", text, "============\n")
+        print("Generated text:\n============\n", text, "============\n")
         token_ids = self.tokenizer.encode(text)
-        # 找出新增部分
+        # Find the newly added portion (diff)
         diff = token_ids[len(self.token_ids):]
         self.token_ids = token_ids
         print(self.decode(diff))
@@ -47,7 +47,7 @@ class Tokenizer_Http():
         self.token_ids_cache += token_ids
         text = self.tokenizer.decode(self.token_ids_cache)
         if "\ufffd" in text and len(self.token_ids_cache) < 9:
-            print("text 中包含非法字符")
+            print("Text contains invalid characters")
             return ""
         else:
             self.token_ids_cache.clear()
@@ -90,20 +90,20 @@ class Request(BaseHTTPRequestHandler):
     server_version = 'Apache'
 
     def do_GET(self):
-        print("GET 请求路径:", self.path)
+        print("GET request path:", self.path)
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
 
-        # 新增接口：获取 uid
+        # New endpoint: obtain uid
         if '/get_uid' in self.path:
             new_uid = str(uuid.uuid4())
-            print("新 uid:", new_uid)
-            # 为该 uid 创建一个新的 Tokenizer_Http 实例
+            print("new uid:", new_uid)
+            # Create a new Tokenizer_Http instance for this uid
             tokenizers[new_uid] = Tokenizer_Http()
             msg = json.dumps({'uid': new_uid})
         elif '/bos_id' in self.path:
-            # 获取 uid 参数（例如 ?uid=xxx）
+            # Get uid parameter (e.g., ?uid=xxx)
             uid = self.get_query_param("uid")
             instance: Tokenizer_Http = tokenizers.get(uid)
             if instance is None:
@@ -122,14 +122,14 @@ class Request(BaseHTTPRequestHandler):
         else:
             msg = json.dumps({'error': 'Invalid GET endpoint'})
 
-        print("响应消息:", msg)
+        print("Response message:", msg)
         self.wfile.write(msg.encode())
 
     def do_POST(self):
         content_length = int(self.headers.get('content-length', 0))
         data = self.rfile.read(content_length).decode()
-        print("POST 请求路径:", self.path)
-        print("接收到的数据:", data)
+        print("POST request path:", self.path)
+        print("Received data:", data)
         req = json.loads(data)
 
         self.send_response(200)
@@ -137,7 +137,7 @@ class Request(BaseHTTPRequestHandler):
         self.end_headers()
 
         if '/encode' in self.path:
-            # 请求数据中必须包含 uid, text, 和可选的 last_reply
+            # Request JSON must contain uid, text, and optional last_reply
             uid = req.get('uid')
             prompt = req.get('text')
             last_reply = req.get('last_reply')
@@ -173,14 +173,14 @@ class Request(BaseHTTPRequestHandler):
         else:
             msg = json.dumps({'error': 'Invalid POST endpoint'})
 
-        print("响应消息:", msg)
+        print("Response message:", msg)
         self.wfile.write(msg.encode())
 
     def get_query_param(self, key):
         """
-        辅助函数：从 GET 请求的 URL 中获取查询参数的值
-        例如：/bos_id?uid=xxx
-        """
+            Helper function: extract the query parameter value from a GET request URL
+            Example: /bos_id?uid=xxx
+            """
         from urllib.parse import urlparse, parse_qs
         query = urlparse(self.path).query
         params = parse_qs(query)

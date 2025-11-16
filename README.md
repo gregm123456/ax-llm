@@ -6,29 +6,29 @@
 | -------- | ------------ |
 | AX650    | ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/AXERA-TECH/ax-llm/build_650.yml)|
 
-## 简介
+## Overview
 
-**AX-LLM** 由 **[爱芯元智](https://www.axera-tech.com/)** 主导开发。该项目用于探索业界常用 **LLM(Large Language Model)** 在已有芯片平台上落地的可行性和相关能力边界，**方便**社区开发者进行**快速评估**和**二次开发**自己的 **LLM 应用**。
+**AX-LLM** is led by **[Axera Technology](https://www.axera-tech.com/)**. This project explores the feasibility and capability boundaries of commonly used LLMs (Large Language Models) on current chip platforms, and helps community developers evaluate and adapt LLM applications quickly.
 
-### 分支说明
+### Branch overview
 
-- [ax-context(default)](https://github.com/AXERA-TECH/ax-llm/tree/ax-context)
-  - AX650A/AX650N/AX8850/AX630C Host 运行 LLM 使用
-- [ax-internvl](https://github.com/AXERA-TECH/ax-llm/tree/ax-internvl)
-  - AX650A/AX650N/AX8850/AX630C Host 运行 InternVL 系列使用
-- [axcl-context](https://github.com/AXERA-TECH/ax-llm/tree/axcl-context)
-  - AX650N/AX8850 EP 的主控运行 LLM 系列使用
-- [axcl-internvl](https://github.com/AXERA-TECH/ax-llm/tree/axcl-internvl)
-  - AX650N/AX8850 EP 的主控运行 InternVL 系列使用
+ - [ax-context(default)](https://github.com/AXERA-TECH/ax-llm/tree/ax-context)
+   - Designed for running LLMs on AX650A/AX650N/AX8850/AX630C host boards
+ - [ax-internvl](https://github.com/AXERA-TECH/ax-llm/tree/ax-internvl)
+   - Designed for running the InternVL series on AX650A/AX650N/AX8850/AX630C host boards
+ - [axcl-context](https://github.com/AXERA-TECH/ax-llm/tree/axcl-context)
+   - The host controller on AX650N/AX8850 EP is used to run LLMs
+ - [axcl-internvl](https://github.com/AXERA-TECH/ax-llm/tree/axcl-internvl)
+   - The host controller on AX650N/AX8850 EP is used to run the InternVL series
 
-### 已支持芯片
+### Supported chips
 
 - AX650A/AX650N
   - SDK ≥ v3.6.2
 - AX630C
   - SDK ≥ v3.0.0
 
-### 已支持模型
+### Supported models
 
 - Qwen2.5
 - Qwen3
@@ -36,25 +36,25 @@
 - SmolLM2
 - Llama3
 
-### 获取地址
+### Model sources
 
-我们的 ModelZoo 已迁移到 [Huggingface](https://huggingface.co/AXERA-TECH), 例如：
+ Our ModelZoo has migrated to [Huggingface](https://huggingface.co/AXERA-TECH), for example:
 
 - [Qwen2.5-7B-Instruct](https://huggingface.co/AXERA-TECH/Qwen2.5-7B-Instruct)
 - [Qwen2.5-1.5B-Instruct](https://huggingface.co/AXERA-TECH/Qwen2.5-1.5B-Instruct)
 
-## 源码编译
+## Building from source
 
-- clone 本项目
+1. Clone this repository
     ```shell
     git clone --recursive https://github.com/AXERA-TECH/ax-llm.git
     cd ax-llm
     ```
-- 仔细阅读 `build.sh` ，并在 `build.sh` 正确修改 `BSP_MSP_DIR` 变量后，运行编译脚本
+2. Read `build.sh`, set the `BSP_MSP_DIR` variable correctly, and run the build script
     ```shell
     ./build.sh
     ```
-- 正确编译后，`build/install/` 目录
+ - After a successful build, the `build/install/` directory will contain:
   ```
   $ tree install
     install
@@ -65,20 +65,20 @@
         └── qwen2.5_tokenizer_uid.py
   ```
 
-  其中 `main` 就是 Huggingface 仓库中对应的 `main_ax650`
+  The `main` binary corresponds to `main_ax650` in the Huggingface repository.
   
-## 运行示例
+## Run examples
 
 ### Qwen2.5-1.5B-Instruct
 
-#### 运行支持上下文的 tokenizer 服务器
+#### Start the tokenizer server (context-enabled)
 
 ```shell
 python qwen2.5_tokenizer_uid.py 
 Server running at http://127.0.0.1:12345
 ```
 
-#### 运行命令行 llm
+#### Run the command-line LLM client
 ```shell
 ./run_qwen2.5_1.5b_ctx_ax650.sh 
 [I][                            Init][ 110]: LLM init start
@@ -125,13 +125,13 @@ Hello Allen! I'm sorry, but I'm an AI language model and I don't have a name. I'
 [N][                             Run][ 943]: hit eos,avg 10.80 token/s
 
 [I][                      GetKVCache][ 500]: precompute_len:83, remaining:1965
-prompt >> 我叫什么名字
+prompt >> What is my name
 [I][                      SetKVCache][ 531]: prefill_grpid:2 kv_cache_num:512 precompute_len:83 input_num_token:12
 [I][                      SetKVCache][ 534]: current prefill_max_token_num:1920
 [I][                             Run][ 660]: input token num : 12, prefill_split_num : 1
 [I][                             Run][ 686]: input_num_token:12
 [I][                             Run][ 829]: ttft: 538.67 ms
-你的名字是Allen。
+Your name is Allen.
 
 [N][                             Run][ 943]: hit eos,avg 10.57 token/s
 
@@ -139,8 +139,8 @@ prompt >> 我叫什么名字
 
 ```
 
-#### 运行api以及gradio demo
-##### 启动服务器
+#### Run the API and Gradio demo
+##### Start the server
 ```shell
 ./run_qwen2.5_1.5b_ctx_ax650_api.sh 
 [I][                            Init][ 110]: LLM init start
@@ -173,7 +173,7 @@ bos_id: -1, eos_id: 151645
 [I][                            Init][ 218]: LLM init ok
 Server running on port 8000...
 ```
-获取板端 ip，并修改 gradio 代码中的 ip 地址
+Find the board's IP address and update the host/port in the Gradio code
 ```
 import time
 import gradio as gr
@@ -185,7 +185,7 @@ API_URL = "http://x.x.x.x:8000"
 ...
 
 ```
-运行 gradio_demo.py
+ Run gradio_demo.py
 ```
 python gradio_demo.py 
 /home/axera/ax-llm/scripts/gradio_demo.py:102: UserWarning: You have not specified a value for the `type` parameter. Defaulting to the 'tuples' format for chatbot messages, but this is deprecated and will be removed in a future version of Gradio. Please set type='messages' instead, which uses openai-style dictionaries with 'role' and 'content' keys.
@@ -201,8 +201,8 @@ To create a public link, set `share=True` in `launch()`.
 
 - [Qwen](https://huggingface.co/Qwen)
 
-## 技术讨论
+## Discussion / Support
 
-- Github issues
-- QQ 群: 139953715
+- GitHub issues
+- QQ Group: 139953715
 
