@@ -53,15 +53,15 @@ print(tokenizer.encode("hello world"))
 
 
 class Request(BaseHTTPRequestHandler):
-    #通过类继承，新定义类
+    # Define a new class using inheritance
     timeout = 5
     server_version = 'Apache'
 
     def do_GET(self):
         print(self.path)
-        #在新类中定义get的内容（当客户端向该服务端使用get请求时，本服务端将如下运行）
+        # Define GET behavior for the new class (how the server responds to GET requests)
         self.send_response(200)
-        self.send_header("type","get") #设置响应头，可省略或设置多个
+        self.send_header("type","get") # Set response header (optional, multiple headers allowed)
         self.end_headers() 
 
         if self.path == '/bos_id':
@@ -82,17 +82,17 @@ class Request(BaseHTTPRequestHandler):
             msg = 'error'
 
         print(msg)
-        msg = str(msg).encode() #转为str再转为byte格式
+        msg = str(msg).encode() # Convert to str then to bytes
 
-        self.wfile.write(msg) #将byte格式的信息返回给客户端
+        self.wfile.write(msg) # Return the byte-formatted message to the client
 
     def do_POST(self):
-        #在新类中定义post的内容（当客户端向该服务端使用post请求时，本服务端将如下运行）
-        data = self.rfile.read(int(self.headers['content-length'])) #获取从客户端传入的参数（byte格式）
-        data =  data.decode() #将byte格式转为str格式
+        # Define POST behavior for the new class (how the server responds to POST requests)
+        data = self.rfile.read(int(self.headers['content-length'])) # Read incoming parameters from client (bytes)
+        data =  data.decode() # Convert bytes to str
 
         self.send_response(200)
-        self.send_header("type","post") #设置响应头，可省略或设置多个
+        self.send_header("type","post") # Set response header (optional, multiple headers allowed)
         self.end_headers()
 
         if self.path == '/encode':

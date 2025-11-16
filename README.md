@@ -22,8 +22,8 @@
 
 ### Download links
 
-- InternVL2-1B [百度网盘](https://pan.baidu.com/s/1_LG-sPKnLS_LTWF3Cmcr7A?pwd=ph0e)
-- SmolVLM-256M-Instruct [下载地址](https://github.com/techshoww/ax-llm/releases/download/v1.0.0/SmolVLM-256M-Instruct-AX650.tar.gz) 。推荐这里面的模型[AXERA huggingface](https://huggingface.co/AXERA-TECH/SmolVLM-256M-Instruct)，这里面的模型编译的prefill_len更小，跑的更快。
+- InternVL2-1B: Baidu Netdisk [download link](https://pan.baidu.com/s/1_LG-sPKnLS_LTWF3Cmcr7A?pwd=ph0e)
+- SmolVLM-256M-Instruct: [Download](https://github.com/techshoww/ax-llm/releases/download/v1.0.0/SmolVLM-256M-Instruct-AX650.tar.gz). We recommend using the AXERA Huggingface distribution at [AXERA Huggingface](https://huggingface.co/AXERA-TECH/SmolVLM-256M-Instruct) which uses smaller prefill_len and runs faster.
 
 ## Building from source
 
@@ -34,13 +34,13 @@
     ```
 -- Clone the `ax650n_bsp_sdk` repository
     ```shell
-    git cloen https://github.com/AXERA-TECH/ax650n_bsp_sdk
+    git clone https://github.com/AXERA-TECH/ax650n_bsp_sdk
     ```
 -- Carefully review `build.sh` and update the `BSP_MSP_DIR` variable (points to `ax650n_bsp_sdk`) before running `./build.sh`.
     ```shell
     ./build.sh
     ```
-- 正确编译后，`build/install/bin` 目录，应有以下文件（百度网盘中有预编译的可执行程序）
+- After a successful build, the `build/install/bin` directory should contain the following files (prebuilt executables are available on Baidu Netdisk)
   ```
   $ tree install/bin/
     install/bin/
@@ -58,13 +58,13 @@
 #### 1) Start the HTTP Tokenizer server
 ```
 cd scripts
-python smolvlm_tokenizer_512.py  --host {your host} --port {your port}   # 和 run_smolvlm.sh 中一致
+python smolvlm_tokenizer_512.py  --host {your host} --port {your port}   # consistent with run_smolvlm.sh
 ```
 
 #### 2) Run the model on the board
-1) 先修改 `run_smolvlm.sh` 中的http host.  
+1) First update the HTTP host setting in `run_smolvlm.sh`.
 2) Copy `scripts/run_smolvlm.sh`, `src/post_config.json`, `build/install/bin/main`, and `assets/demo.jpg` to your Axera board
-3) 运行 `run_smolvlm.sh`  
+3) Run `run_smolvlm.sh`  
 ```shell
 root@ax650 ~/SmolVLM-256M-Instruct-Infer # bash run_smolvlm.sh 
 [I][                            Init][ 106]: LLM init start
