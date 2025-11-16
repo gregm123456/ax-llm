@@ -14,6 +14,7 @@ class LLMPostprocess
 {
 private:
     // 	控制随机性
+        // 	Control randomness
     void apply_temperature(std::vector<float> &logits, float temperature)
     {
         for (float &logit : logits)
@@ -23,6 +24,7 @@ private:
     }
 
     // 防止重复
+        // Prevent repetition
     void apply_repetition_penalty(std::vector<float> &logits, const std::vector<int> &history, float penalty)
     {
         for (int token : history)
@@ -42,6 +44,7 @@ private:
         if (repetition_penalty == 1.0f || generated_tokens.empty())
         {
             return; // 如果 penalty = 1.0 或者没有生成 token，则不进行修改
+                return; // If penalty = 1.0 or no token was generated, do not modify
         }
 
         int start_idx = std::max(0, (int)generated_tokens.size() - penalty_window);
@@ -64,6 +67,7 @@ private:
     }
 
     // 增强多样性
+        // Enhance diversity
     void apply_diversity_penalty(std::vector<float> &logits, const std::vector<int> &common_phrases, float penalty)
     {
         for (int token : common_phrases)
@@ -97,12 +101,15 @@ private:
     }
 
     // 	动态裁剪低概率 token
+        // 	Dynamically prune low-probability tokens
     int faster_top_p_sampling(const std::vector<float> &logits, float top_p)
     {
         // 计算softmax
+            // Compute softmax
         std::vector<float> probs = softmax(logits);
 
         // 构建最大堆（概率和索引的配对）
+            // Build max-heap (pair probability and index)
         std::vector<std::pair<float, size_t>> prob_index;
         prob_index.reserve(logits.size());
         for (size_t i = 0; i < logits.size(); ++i)
@@ -114,6 +121,7 @@ private:
         std::make_heap(prob_index.begin(), prob_index.end(), cmp);
 
         // 提取top-p元素
+            // Extract top-p elements
         std::vector<size_t> filtered_indices;
         std::vector<float> filtered_probs;
         float cumulative_prob = 0.0f;
@@ -133,10 +141,12 @@ private:
         }
 
         // 处理边缘情况（概率全零时返回第一个元素）
+            // Handle edge case (return the first element when all probabilities are zero)
         if (filtered_indices.empty())
             return 0;
 
         // 使用thread_local随机数生成器（线程安全）
+            // Use thread_local RNG (thread-safe)
         static thread_local std::mt19937 gen(std::random_device{}());
         std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
         return filtered_indices[dist(gen)];
@@ -184,17 +194,20 @@ private:
     }
 
     // 限制候选 token 数
+        // Limit the number of candidate tokens
     int top_k_sampling(const std::vector<float> &logits, int k)
     {
         // std::vector<float> probs = softmax(logits);
 
         // 获取 top-k 索引
+            // Get top-k indices
         std::vector<size_t> indices(logits.size());
         std::iota(indices.begin(), indices.end(), 0);
         std::partial_sort(indices.begin(), indices.begin() + k, indices.end(), [&](size_t i, size_t j)
                           { return logits[i] > logits[j]; });
 
         // 仅保留 top-k 概率
+            // Keep only top-k probabilities
         std::vector<size_t> filtered_indices(indices.begin(), indices.begin() + k);
         std::vector<float> filtered_probs(k);
         for (size_t i = 0; i < k; ++i)
@@ -204,6 +217,7 @@ private:
         filtered_probs = softmax(filtered_probs);
 
         // 归一化
+            // Normalize
         float sum = std::accumulate(filtered_probs.begin(), filtered_probs.end(), 0.0f);
         for (float &p : filtered_probs)
         {
@@ -211,6 +225,7 @@ private:
         }
 
         // 采样
+            // Sampling
         std::random_device rd;
         std::mt19937 gen(rd());
         std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
@@ -312,6 +327,7 @@ public:
         else
         {
             // 最大值
+                // Maximum
             float max_logit = *std::max_element(logits.begin(), logits.end());
             int max_index = std::distance(logits.begin(), std::max_element(logits.begin(), logits.end()));
             return max_index;

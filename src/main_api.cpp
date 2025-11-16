@@ -129,11 +129,11 @@ private:
                 task = std::move(tasks.front());
                 tasks.pop();
             }
-            task(); // 执行任务
+            task(); // Execute the task
         }
     }
 
-    // **支持无参数任务**
+    // **Support tasks without parameters**
     void addTask(Task task)
     {
         {

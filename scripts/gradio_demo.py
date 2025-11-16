@@ -89,13 +89,13 @@ def stop_generate():
 # }
 # """
 
-# Build the Gradio interface优化布局
+# Build the Gradio interface (layout optimizations)
 with gr.Blocks(theme=gr.themes.Soft(font="Consolas"), fill_width=True) as demo:
     gr.Markdown("<h2 style='text-align:center;'>🚀 Chatbot Demo with Axare API Backend</h2>")
     
-    # 使用Row包裹左右两个主要区域
+    # Use Row to wrap left and right main areas
     with gr.Row():
-        # 左侧聊天主区域（占3/4宽度）
+        # Left chat main area (occupies 3/4 width)
         with gr.Column(scale=3):
             system_prompt = gr.Textbox(label="System Prompt", placeholder="Optional system prompt", lines=2, value="You are Qwen, created by Alibaba Cloud. You are a helpful assistant.")
             reset_button = gr.Button("🔄 Reset Chat")
@@ -105,7 +105,7 @@ with gr.Blocks(theme=gr.themes.Soft(font="Consolas"), fill_width=True) as demo:
                 send_button = gr.Button("➡️ Send", variant="primary")
                 stop_button = gr.Button("🛑 Stop", variant="stop")
 
-        # 右侧参数设置区域（占1/4宽度）
+        # Right-side parameter settings area (occupies 1/4 width)
         with gr.Column(scale=1):
             temperature = gr.Slider(minimum=0.0, maximum=1.0, step=0.01, value=0.7, label="Temperature")
             repetition_penalty = gr.Slider(minimum=1.0, maximum=2.0, step=0.01, value=1.0, label="Repetition Penalty")
