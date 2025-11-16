@@ -231,7 +231,7 @@ public:
 
         if (attr.b_dynamic_load_axmodel_layer)
         {
-            // 加载第一层获取shape信息
+            // Load first layer to obtain shape information
             auto &layer = llama_layers[0];
             int ret;
             if (_attr.b_use_mmap_load_layer)
@@ -686,7 +686,7 @@ public:
         float t_cost_ms = t_cost.cost();
         ALOGN("hit eos,avg %.2f token/s\n", token_ids.size() / (t_cost_ms / 1000));
 
-        // 去掉 len_of_input 那部分
+        // Remove the len_of_input portion
         // token_ids.erase(token_ids.begin(), token_ids.begin() + len_of_input);
 
         final_out = tokenizer->Decode(token_ids);
