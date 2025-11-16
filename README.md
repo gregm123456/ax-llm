@@ -6,37 +6,37 @@
 | -------- | ------------ |
 | AX650    | ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/AXERA-TECH/ax-llm/build_650.yml?internvl2)|
 
-## 简介
+## Overview
 
-**AX-LLM** 由 **[爱芯元智](https://www.axera-tech.com/)** 主导开发。该项目用于探索业界常用 **LLM(Large Language Model)** 在已有芯片平台上落地的可行性和相关能力边界，**方便**社区开发者进行**快速评估**和**二次开发**自己的 **LLM 应用**。
+**AX-LLM** is developed by **[Axera](https://www.axera-tech.com/)**. This project explores the feasibility and performance of large language models on Axera hardware and provides a basis for rapid evaluation and further development of LLM applications by the community.
 
-### 已支持芯片
+### Supported chips
 
 - AX650A/AX650N
   - SDK ≥ v1.45.0_P31
 
-### 已支持模型
+### Supported models
 
 - InternVL2-1B
 - SmolVLM-256M-Instruct
 
-### 获取地址
+### Download links
 
 - InternVL2-1B [百度网盘](https://pan.baidu.com/s/1_LG-sPKnLS_LTWF3Cmcr7A?pwd=ph0e)
 - SmolVLM-256M-Instruct [下载地址](https://github.com/techshoww/ax-llm/releases/download/v1.0.0/SmolVLM-256M-Instruct-AX650.tar.gz) 。推荐这里面的模型[AXERA huggingface](https://huggingface.co/AXERA-TECH/SmolVLM-256M-Instruct)，这里面的模型编译的prefill_len更小，跑的更快。
 
-## 源码编译
+## Building from source
 
--  clone 本项目  
+-- Clone this repository
     ```shell
     git clone  https://github.com/AXERA-TECH/ax-llm.git
     cd ax-llm
     ```
-- clone `ax650n_bsp_sdk` 代码  
+-- Clone the `ax650n_bsp_sdk` repository
     ```shell
     git cloen https://github.com/AXERA-TECH/ax650n_bsp_sdk
     ```
-- 仔细阅读 `build.sh` ，并在 `build.sh` 正确修改 `BSP_MSP_DIR` 变量后(该变量表示`ax650n_bsp_sdk`代码位置)，运行编译脚本  
+-- Carefully review `build.sh` and update the `BSP_MSP_DIR` variable (points to `ax650n_bsp_sdk`) before running `./build.sh`.
     ```shell
     ./build.sh
     ```
@@ -49,21 +49,21 @@
     └── run_qwen_1.8B.sh
   ```
   
-## 运行示例
+## Example: Running the model
 
 ### SmolVLM-256M-Instruct
 
 ![demo.jpg](assets/demo.jpg)
 
-#### 1. 首先启动 HTTP Tokenizer Server  
+#### 1) Start the HTTP Tokenizer server
 ```
 cd scripts
 python smolvlm_tokenizer_512.py  --host {your host} --port {your port}   # 和 run_smolvlm.sh 中一致
 ```
 
-#### 2. 在板子上运行模型  
+#### 2) Run the model on the board
 1) 先修改 `run_smolvlm.sh` 中的http host.  
-2) 将 `scripts/run_smolvlm.sh`, `src/post_config.json` ,`build/install/bin/main`, `assets/demo.jpg` 拷贝到爱芯板子上  
+2) Copy `scripts/run_smolvlm.sh`, `src/post_config.json`, `build/install/bin/main`, and `assets/demo.jpg` to your Axera board
 3) 运行 `run_smolvlm.sh`  
 ```shell
 root@ax650 ~/SmolVLM-256M-Instruct-Infer # bash run_smolvlm.sh 
@@ -96,7 +96,7 @@ In summary, the image depicts the Statue of Liberty, a large, historic statue lo
 [N][                             Run][ 687]: hit eos,avg 76.88 token/s
 ```
 
-## 推理速度  
+## Inference speed
 | Stage | Time |
 |------|------|
 | Image Encoder (512x512) | 120 ms  | 
@@ -107,7 +107,7 @@ In summary, the image depicts the Statue of Liberty, a large, historic statue lo
 
 - [InternVL2-1B](https://huggingface.co/OpenGVLab/InternVL2-1B)
 - [SmolVLM-256M-Instruct](https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct)
-## 技术讨论
+## Discussion / Support
 
-- Github issues
+- GitHub issues
 - QQ 群: 139953715
